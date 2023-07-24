@@ -1,0 +1,193 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r message=FALSE,warning=FALSE}
+library(tidyverse)
+library(dplyr)
+library(car)
+library(corrplot)
+library(tidymodels)
+```
+
+
+## Data Exploration
+
+```{r}
+url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/breast-cancer-wisconsin.data"
+
+download.file(url, destfile = 'data/breast-cancer-wisconsin.data')
+
+data <- read.csv("data/breast-cancer-wisconsin.data",header = FALSE,
+                 col.names = c("ID","clump_thickness", "uniformity_size", "uniformity_shape", "marginal_adhesion", "single_epithelial_cell_size", "bare_nuclei", "bland_chromatin", "normal_nucleoli","mitoses", "diagnosis"))
+glimpse(data)
+```
+
+```{r}
+count(data, bare_nuclei) %>% arrange(n)
+```
+The dataset includes cytological characteristics of fluid samples from 699 patients. The first column consists of unique identifiers that wouldn’t be helpful for our model, so we’ll first take them out. We’ll also exclude the 16 data points that has missing values in the bare_nuclei column. The dependent variable diagnosis is now denoted as 2 that stands for “benign” and 4 that stands for “malignant”. We’ll convert it into a binary variable of 0 and 1 respectively.
+
+```{r}
+#data <- data[data$bare_nuclei != "?",] %>% mutate(bare_nuclei = as.integer(as.character((bare_nuclei))))
+#data <- data %>% mutate(diagnosis = ifelse(diagnosis == 2, 0, 1),diagnosis = as.factor(diagnosis))
+
+data <- select(data, -1) %>% 
+  filter(bare_nuclei != "?") %>% 
+  mutate(bare_nuclei = as.integer(bare_nuclei)) %>% 
+  mutate(diagnosis = fct_recode(as.factor(diagnosis), "benign"="2","malignant"="4"))
+  
+```
+
+Distribution of Diagnosis
+
+```{r}
+ggplot(data, aes(x = diagnosis)) +
+  geom_bar() 
+count(data, diagnosis)
+```
+
+```{r}
+correlation <- cor(data[,-10])
+corrplot(correlation, type = "lower",addCoef.col = "black",tl.col = "black")
+```
+## Classification 
+
+```{r}
+library(tidymodels)
+set.seed(1234)
+split <- initial_split(data,strata = diagnosis)
+test <- testing(split)
+train <- training(split)
+folds <- vfold_cv(data, v = 5)
+```
+
+```{r}
+train_rcp <- recipes::recipe(diagnosis~., data = train) %>%
+  step_zv(all_predictors())
+
+```
+
+```{r}
+lin_mod <- logistic_reg() %>% 
+  set_engine("glm",family = stats::binomial(link = "probit"))
+```
+
+```{r}
+lr_wf <- 
+  workflow() %>% 
+  add_model(lin_mod) %>% 
+  add_recipe(train_rcp)
+```
+
+```{r}
+lr_fit <- 
+  lr_wf %>% 
+  fit(data = train %>%      select(-c(uniformity_size, single_epithelial_cell_size, bare_nuclei, mitoses)))
+```
+
+```{r}
+lr_fitted <- lr_fit %>% 
+  extract_fit_parsnip()
+```
+
+```{r}
+pred_res <- bind_cols(
+  Sample = rownames(train),
+  Pred=predict(lr_fitted, train),
+  Actual=pull(train,diagnosis),
+  predict(lr_fitted, train,type = "prob")
+)
+```
+
+```{r}
+library(yardstick)
+bal_accuracy(pred_res, .pred_class,Actual)
+```
+
+```{r}
+pred_res %>% 
+  roc_auc(Actual, .pred_benign)
+
+pred_res %>% 
+  roc_curve(Actual,.pred_benign) %>% 
+  autoplot
+```
+
+
+## Decision Tree
+
+```{r}
+tree_spec <- decision_tree() %>%
+  set_engine("rpart")
+
+class_tree_spec <- tree_spec %>%
+  set_mode("classification")
+
+class_tree_fit <- class_tree_spec %>%
+  fit(diagnosis ~ ., data = train)
+class_tree_fit
+```
+
+```{r}
+library(rpart.plot)
+class_tree_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+```
+
+
+
+```{r}
+augment(class_tree_fit, new_data = test) %>%
+  accuracy(truth = diagnosis, estimate = .pred_class)
+```
+
+```{r}
+class_tree_wf <- workflow() %>%
+  add_model(class_tree_spec %>% set_args(cost_complexity = tune())) %>%
+  add_formula(diagnosis ~ .)
+```
+
+```{r}
+param_grid <- grid_regular(cost_complexity(range = c(-3, -1)), levels = 10)
+
+tune_res <- tune_grid(
+  class_tree_wf, 
+  resamples = folds, 
+  grid = param_grid, 
+  metrics = metric_set(accuracy)
+)
+```
+
+```{r}
+autoplot(tune_res)
+```
+```{r}
+best_complexity <- select_best(tune_res)
+
+class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
+
+class_tree_final_fit <- fit(class_tree_final, data = train)
+class_tree_final_fit
+```
+
+```{r}
+class_tree_final_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot()
+```
+
+```{r}
+bagging_spec <- rand_forest(mtry = .cols()) %>%
+  set_engine("randomForest", importance = TRUE) %>%
+  set_mode("classification")
+```
+
+```{r}
+vip(bagging_fit)
+```
+
+
+
