@@ -1,6 +1,3 @@
-# breast-cancer-ml
-Classifying breast cancer from images
+# Testing different machine learning approaches
 
-Using this RPubs post as a stating point, but using tidymodels for the analysis
-
-https://rpubs.com/jazzmine/breast-cancer-ml
+Various examples of applying machine-learning techniques
