@@ -18,3 +18,18 @@
 
 - https://www.kaggle.com/datasets/akki2703/ecg-of-cardiac-ailments-dataset
 - `ECGCvdata.csv`
+
+## Fetal Health Classification
+
+- https://www.kaggle.com/datasets/andrewmvd/fetal-health-classification/
+- `fetal_health.csv`
+
+## Diabetes Health care
+
+- https://www.kaggle.com/datasets/deependraverma13/diabetes-healthcare-comprehensive-dataset
+- `health care diabetes.csv`
+
+## Heart Failure Prediction
+
+- https://www.kaggle.com/datasets/andrewmvd/heart-failure-clinical-data
+- `heart_failure_clinical_records_dataset.csv`
