@@ -33,3 +33,28 @@
 
 - https://www.kaggle.com/datasets/andrewmvd/heart-failure-clinical-data
 - `heart_failure_clinical_records_dataset.csv`
+
+## Heart Attack Prediction Dataset
+
+- https://www.kaggle.com/datasets/rashikrahmanpritom/heart-attack-analysis-prediction-dataset
+- `heart.csv`
+
+## Adolescent Insomnia Study Data
+
+- https://www.kaggle.com/datasets/utkarshx27/insomnia-symptomatology-in-adolescence
+- `insomnia/insomnia_data_dictionary.csv`
+- `insomnia/insomnia_data.csv`
+- `insomnia/insomnia_item_level_data.csv`
+
+## National Health and Nutrition Examination Survey
+- https://www.kaggle.com/datasets/cdc/national-health-and-nutrition-examination-survey
+- `NHANES/demographic.csv`
+- `NHANES/diet.csv`
+- `NHANES/examination.csv`
+- `NHANES/labs.csv`
+- `NHANES/medications.csv`
+- `NHANES/questionnaire.csv`
+
+## Parkinsons Telemonitoring
+- https://www.kaggle.com/datasets/porinitahoque/parkinsons-telemonitoring
+- `Parkinsons-Telemonitoring-ucirvine.csv`
